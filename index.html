@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SquadFuel Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #001a33;
+            color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .balance-container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 30px;
+            border-radius: 20px;
+            border: 1px solid #ffd700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .balance-label { font-size: 14px; color: #ffd700; text-transform: uppercase; }
+        .balance-value { font-size: 32px; font-weight: bold; margin-top: 5px; }
+
+        .fuel-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 20px;
+            width: 80%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .progress-container {
+            background: #002b52;
+            border-radius: 15px;
+            height: 30px;
+            width: 100%;
+            margin: 20px 0;
+            border: 2px solid #ffd700;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #ffd700, #ffcc00);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .btn-boost {
+            background-color: #ffd700;
+            color: #001a33;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-wallet {
+            margin-top: 30px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 10px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 id="user-greeting">Welcome, Pilot!</h2>
+    </div>
+
+    <div class="balance-container">
+        <div class="balance-label">$FUEL Balance</div>
+        <div class="balance-value" id="balance">0</div>
+    </div>
+
+    <div class="fuel-card">
+        <div style="font-size: 14px; color: #ffd700;">TANK STATUS</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="fuel-bar"></div>
+        </div>
+        <div id="fuel-text">0%</div>
+        <button class="btn-boost" onclick="startBoost()">🚀 BOOST ENERGY</button>
+    </div>
+
+    <button class="btn-wallet" onclick="alert('Wallet integration coming soon!')">💳 CONNECT WALLET</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Felhasználónév beállítása
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            document.getElementById('user-greeting').innerText = `Welcome, ${tg.initDataUnsafe.user.first_name}!`;
+        }
+
+        // Pontok és Üzemanyag betöltése
+        let balance = parseInt(localStorage.getItem('fuelBalance')) || 0;
+        let fuel = 0;
+
+        document.getElementById('balance').innerText = balance.toLocaleString();
+
+        function startBoost() {
+            // Itt jönne az Adsgram hívás!
+            alert("Adsgram Ad Loading... (Simulated)");
+            
+            // Reklám után:
+            fuel = 100;
+            balance += 500; // Jutalompont a reklámért
+            
+            updateUI();
+            
+            // Mentés
+            localStorage.setItem('fuelBalance', balance);
+            
+            // Telegram rezgés
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('fuel-bar').style.width = fuel + '%';
+            document.getElementById('fuel-text').innerText = fuel + '%';
+            document.getElementById('balance').innerText = balance.toLocaleString();
+        }
+    </script>
+</body>
+</html>
