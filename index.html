@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SquadFuel Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -26,129 +26,171 @@
 
         .balance-container {
             background: rgba(255, 255, 255, 0.05);
-            padding: 15px 30px;
+            border: 1px solid #ffcc00;
             border-radius: 20px;
-            border: 1px solid #ffd700;
+            padding: 20px 40px;
+            margin-bottom: 30px;
             text-align: center;
-            margin-bottom: 20px;
         }
 
-        .balance-label { font-size: 14px; color: #ffd700; text-transform: uppercase; }
-        .balance-value { font-size: 32px; font-weight: bold; margin-top: 5px; }
-
-        .fuel-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 20px;
-            width: 80%;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        .balance-label {
+            font-size: 14px;
+            color: #ffcc00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .progress-container {
-            background: #002b52;
-            border-radius: 15px;
-            height: 30px;
-            width: 100%;
-            margin: 20px 0;
-            border: 2px solid #ffd700;
-            overflow: hidden;
+        .balance-amount {
+            font-size: 48px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 25px;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .tank-label {
+            color: #ffcc00;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
         }
 
         .progress-bar {
-            background: linear-gradient(90deg, #ffd700, #ffcc00);
+            width: 100%;
+            height: 30px;
+            background-color: #222;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            border: 1px solid #444;
+        }
+
+        .progress-fill {
+            width: 100%;
             height: 100%;
-            width: 0%;
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #ffcc00, #ffaa00);
+            transition: width 0.3s ease;
+        }
+
+        .percentage {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            margin-bottom: 10px;
         }
 
         .btn-boost {
-            background-color: #ffd700;
+            background: #ffcc00;
             color: #001a33;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-            width: 100%;
-            margin-top: 10px;
         }
 
-        .btn-wallet {
-            margin-top: 30px;
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.3);
+        .btn-invite {
+            background: #248b6d;
             color: white;
-            padding: 8px 20px;
+        }
+
+        .button:active {
+            transform: scale(0.95);
+        }
+
+        .wallet-btn {
+            background: none;
+            border: 1px solid #444;
+            color: #aaa;
+            padding: 8px 15px;
             border-radius: 10px;
             font-size: 12px;
-            opacity: 0.7;
+            margin-top: 40px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2 id="user-greeting">Welcome, Pilot!</h2>
+        <h1>Welcome, Pilot!</h1>
     </div>
 
     <div class="balance-container">
         <div class="balance-label">$FUEL Balance</div>
-        <div class="balance-value" id="balance">0</div>
+        <div id="balance" class="balance-amount">0</div>
     </div>
 
-    <div class="fuel-card">
-        <div style="font-size: 14px; color: #ffd700;">TANK STATUS</div>
-        <div class="progress-container">
-            <div class="progress-bar" id="fuel-bar"></div>
+    <div class="game-container">
+        <div class="tank-label">Tank Status</div>
+        <div class="progress-bar">
+            <div id="fuel-bar" class="progress-fill"></div>
         </div>
-        <div id="fuel-text">0%</div>
-        <button class="btn-boost" onclick="startBoost()">🚀 BOOST ENERGY</button>
+        <div id="fuel-percent" class="percentage">100%</div>
+        
+        <button class="button btn-boost" onclick="startBoost()">🚀 BOOST ENERGY</button>
+        <button class="button btn-invite" onclick="inviteFriends()">👥 INVITE FRIENDS</button>
     </div>
 
-    <button class="btn-wallet" onclick="alert('Wallet integration coming soon!')">💳 CONNECT WALLET</button>
+    <button class="wallet-btn">💳 CONNECT WALLET</button>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Felhasználónév beállítása
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            document.getElementById('user-greeting').innerText = `Welcome, ${tg.initDataUnsafe.user.first_name}!`;
+        let balance = parseInt(localStorage.getItem('fuelBalance')) || 0;
+        let fuel = 100;
+
+        function updateUI() {
+            document.getElementById('balance').innerText = balance.toLocaleString();
+            document.getElementById('fuel-bar').style.width = fuel + '%';
+            document.getElementById('fuel-percent').innerText = fuel + '%';
         }
 
-        // Pontok és Üzemanyag betöltése
-        let balance = parseInt(localStorage.getItem('fuelBalance')) || 0;
-        let fuel = 0;
-
-        document.getElementById('balance').innerText = balance.toLocaleString();
-
         function startBoost() {
-            // Itt jönne az Adsgram hívás!
-            alert("Adsgram Ad Loading... (Simulated)");
-            
-            // Reklám után:
-            fuel = 100;
-            balance += 500; // Jutalompont a reklámért
-            
-            updateUI();
-            
-            // Mentés
-            localStorage.setItem('fuelBalance', balance);
-            
-            // Telegram rezgés
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.notificationOccurred('success');
+            if (fuel > 0) {
+                fuel -= 10;
+                balance += 50;
+                updateUI();
+                localStorage.setItem('fuelBalance', balance);
+                
+                if (fuel <= 0) {
+                    tg.HapticFeedback.notificationOccurred('warning');
+                    tg.showAlert("Kifogyott az üzemanyag! Várj a töltésre vagy nézz meg egy reklámot (hamarosan)!");
+                } else {
+                    tg.HapticFeedback.impactOccurred('medium');
+                }
             }
         }
 
-        function updateUI() {
-            document.getElementById('fuel-bar').style.width = fuel + '%';
-            document.getElementById('fuel-text').innerText = fuel + '%';
-            document.getElementById('balance').innerText = balance.toLocaleString();
+        function inviteFriends() {
+            const shareLink = "https://t.me/share/url?url=https://t.me/SquadFuelBot/play&text=Gyere és gyűjts velem $FUEL-t! 🚀";
+            tg.openTelegramLink(shareLink);
         }
+
+        // Automata üzemanyag töltés (minden 10 másodpercben 5%)
+        setInterval(() => {
+            if (fuel < 100) {
+                fuel = Math.min(100, fuel + 5);
+                updateUI();
+            }
+        }, 10000);
+
+        updateUI();
     </script>
 </body>
 </html>
