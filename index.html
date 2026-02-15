@@ -127,7 +127,7 @@
 <body>
 
     <div class="header">
-        <h1>Welcome, Pilot!</h1>
+        <h1 id="user-name">Welcome, Pilot!</h1>
     </div>
 
     <div class="balance-container">
@@ -152,6 +152,12 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // Felhasználónév lekérése
+        const user = tg.initDataUnsafe?.user;
+        if (user && user.first_name) {
+            document.getElementById('user-name').innerText = `Welcome, ${user.first_name}!`;
+        }
+
         let balance = parseInt(localStorage.getItem('fuelBalance')) || 0;
         let fuel = 100;
 
@@ -170,7 +176,7 @@
                 
                 if (fuel <= 0) {
                     tg.HapticFeedback.notificationOccurred('warning');
-                    tg.showAlert("Kifogyott az üzemanyag! Várj a töltésre vagy nézz meg egy reklámot (hamarosan)!");
+                    tg.showAlert("Kifogyott az üzemanyag! Várj a töltésre!");
                 } else {
                     tg.HapticFeedback.impactOccurred('medium');
                 }
@@ -182,7 +188,6 @@
             tg.openTelegramLink(shareLink);
         }
 
-        // Automata üzemanyag töltés (minden 10 másodpercben 5%)
         setInterval(() => {
             if (fuel < 100) {
                 fuel = Math.min(100, fuel + 5);
