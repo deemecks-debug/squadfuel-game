@@ -15,7 +15,7 @@
         .score-value { font-size: 3.5em; font-weight: bold; }
         .status-label { color: #f1c40f; font-size: 0.7em; margin-bottom: 5px; text-transform: uppercase; }
         .fuel-bar { width: 100%; height: 35px; background: #333; border-radius: 20px; overflow: hidden; margin-bottom: 5px; border: 1px solid #444; }
-        #fuel-fill { height: 100%; background: #f1c40f; transition: width 0.3s ease; }
+        #fuel-fill { height: 100%; width: 0%; background: #f1c40f; transition: width 0.3s ease; }
         .timer-text { font-size: 0.85em; color: #ccc; margin-bottom: 15px; height: 1.2em; }
         .btn { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .mine-btn { background: #27ae60; color: white; }
@@ -29,11 +29,11 @@
         <h1 id="welcome-text">Welcome, Mecks!</h1>
         <div class="score-container">
             <div class="score-label">$FUEL BALANCE</div>
-            <div class="score-value" id="points">...</div>
+            <div class="score-value" id="points">0</div>
         </div>
         <div class="status-label">Tank Status</div>
         <div class="fuel-bar"><div id="fuel-fill"></div></div>
-        <div class="timer-text" id="timer-display">Initialising...</div>
+        <div class="timer-text" id="timer-display">Számláló indítása...</div>
         <button class="btn mine-btn" onclick="mine()">⛏ BÁNYÁSZAT</button>
         <button class="btn boost-btn" onclick="showAd()">🚀 BOOST ENERGY (<span id="boost-count">10</span>/10)</button>
         <button class="btn invite-btn" onclick="inviteFriends()">👥 INVITE FRIENDS</button>
@@ -45,11 +45,12 @@
         tg.ready();
         tg.expand();
 
-        // ADATOK BETÖLTÉSE AZONNAL
+        // ADATOK BETÖLTÉSE
         let points = parseInt(localStorage.getItem('points')) || 0;
         let boosts = parseInt(localStorage.getItem('boosts'));
         if (isNaN(boosts)) boosts = 10;
         
+        // Ez a kulcs az időzítőhöz: mikor történt az utolsó változás
         let lastUpdate = parseInt(localStorage.getItem('lastUpdate')) || Date.now();
         const maxBoosts = 10;
         const cooldown = 30000; // 30 másodperc
@@ -69,34 +70,49 @@
         function mine() {
             if (boosts > 0) {
                 points += 10;
-                if (boosts === maxBoosts) lastUpdate = Date.now();
+                // Csak akkor indítjuk az időzítőt, ha eddig tele volt
+                if (boosts === maxBoosts) {
+                    lastUpdate = Date.now();
+                }
                 boosts -= 1;
                 updateUI();
             } else {
-                tg.showAlert("Várj a Boostra!");
+                tg.showAlert("Elfogyott az üzemanyag! Várj a töltésre!");
             }
         }
 
-        // SZÁMLÁLÓ JAVÍTÁSA
-        function runTimer() {
+        // AZ IDŐZÍTŐ LOGIKA FIXÁLÁSA
+        function startTimer() {
             setInterval(() => {
+                const now = Date.now();
+                
                 if (boosts < maxBoosts) {
-                    const now = Date.now();
                     const elapsed = now - lastUpdate;
                     
-                    // Kiszámoljuk, hány 30 mp telt el
+                    // Kiszámoljuk, hány darab 30 mp telt el
                     const regened = Math.floor(elapsed / cooldown);
+                    
                     if (regened > 0) {
                         boosts = Math.min(maxBoosts, boosts + regened);
+                        // Csúsztatjuk az utolsó frissítés idejét a maradékkal
                         lastUpdate = lastUpdate + (regened * cooldown);
                         updateUI();
                     }
 
-                    // Megjelenítjük a hátralévő időt a következő +1-ig
-                    const nextIn = Math.ceil((cooldown - (elapsed % cooldown)) / 1000);
-                    document.getElementById('timer-display').innerText = `Következő ingyen Boost: ${nextIn}s`;
+                    // Kiszámoljuk a hátralévő másodperceket a következőhöz
+                    const nextInMs = cooldown - (elapsed % cooldown);
+                    const seconds = Math.ceil(nextInMs / 1000);
+                    
+                    // Ha közben betelt, ne írjuk ki a számot
+                    if (boosts >= maxBoosts) {
+                        document.getElementById('timer-display').innerText = "TANK FULL (MAX)";
+                    } else {
+                        document.getElementById('timer-display').innerText = `Következő ingyen Boost: ${seconds}s`;
+                    }
                 } else {
                     document.getElementById('timer-display').innerText = "TANK FULL (MAX)";
+                    // Folyamatosan szinkronban tartjuk az időt, ha tele van
+                    lastUpdate = now;
                 }
             }, 1000);
         }
@@ -105,20 +121,24 @@
             try {
                 await AdController.show();
                 boosts = maxBoosts;
+                lastUpdate = Date.now();
                 updateUI();
-            } catch (e) { tg.showAlert("Reklám nem elérhető."); }
+                tg.showAlert("Boost feltöltve!");
+            } catch (e) {
+                tg.showAlert("A reklám még nem érhető el.");
+            }
         }
 
         function inviteFriends() {
-            tg.openTelegramLink("https://t.me/share/url?url=https://t.me/SquadFuelBot&text=Gyere játszani!");
+            tg.openTelegramLink("https://t.me/share/url?url=https://t.me/SquadFuelBot&text=Bányássz velem!");
         }
 
         const user = tg.initDataUnsafe?.user;
         if (user) document.getElementById('welcome-text').innerText = `Welcome, ${user.first_name}!`;
 
-        // INDÍTÁS
+        // AZONNALI INDÍTÁS
         updateUI();
-        runTimer();
+        startTimer();
     </script>
 </body>
 </html>
