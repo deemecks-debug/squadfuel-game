@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SquadFuel - Red Can Edition</title>
+    <title>SquadFuel - Wallet Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    
     <style>
         body { font-family: 'Arial', sans-serif; background-color: #001a33; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; user-select: none; }
         .container { width: 92%; max-width: 420px; text-align: center; }
         
-        /* Pontszám szekció */
         .score-container { border: 2px solid #f1c40f; border-radius: 20px; padding: 20px; margin-bottom: 20px; background: rgba(241, 196, 15, 0.1); }
         .score-value { font-size: 3.8em; font-weight: bold; color: #fff; }
         
-        /* Nagyobb Tap Szekció */
         .boost-section { 
             background: rgba(255, 255, 255, 0.05); 
             border: 2px solid #f1c40f; 
@@ -29,7 +29,7 @@
         .gas-can-circle {
             width: 80px;
             height: 80px;
-            background: #c0392b; /* Piros fém szín */
+            background: #c0392b; 
             border: 4px solid #fff;
             border-radius: 50%;
             display: flex;
@@ -45,7 +45,7 @@
 
         .big-fuel-bar { 
             width: 100%; 
-            height: 35px; /* Megnövelt magasság */
+            height: 35px; 
             background: #333; 
             border-radius: 20px; 
             overflow: hidden; 
@@ -54,7 +54,6 @@
         }
         #fuel-fill { height: 100%; background: linear-gradient(90deg, #f1c40f, #e67e22); transition: width 0.3s; width: 0%; }
 
-        /* Gombok */
         .btn { width: 100%; padding: 15px; margin: 6px 0; border: none; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; }
         .mine-btn { background: #27ae60; color: white; box-shadow: 0 5px #1e8449; }
         .mine-btn:active { transform: translateY(3px); box-shadow: 0 2px #1e8449; }
@@ -99,7 +98,13 @@
         let tapsLeft = 100;
         let lastInviteClaim = parseInt(localStorage.getItem('lastInviteClaim')) || 0;
 
+        // Adsgram Inicializálás
         const AdController = window.Adsgram.init({ blockId: "23039" });
+
+        // TON Connect Inicializálás
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/main/public/tonconnect-manifest.json'
+        });
 
         function updateUI() {
             document.getElementById('points').innerText = points.toLocaleString();
@@ -114,24 +119,15 @@
             if (boosts > 0) {
                 points += 10; boosts -= 1;
                 updateUI(); tg.HapticFeedback.impactOccurred('medium');
-            } else {
-                tg.showAlert("Out of Fuel! Tap the Gas Can!");
-            }
+            } else { tg.showAlert("Out of Fuel! Tap the Gas Can!"); }
         }
 
         function tapCan() {
             if (boosts < 10) {
                 tapsLeft -= 1;
-                if (tapsLeft <= 0) { 
-                    boosts = 10; 
-                    tapsLeft = 100; 
-                    tg.showAlert("⛽ Tank Refilled!"); 
-                }
-                updateUI();
-                tg.HapticFeedback.impactOccurred('light');
-            } else {
-                tg.showAlert("Fuel tank is already full!");
-            }
+                if (tapsLeft <= 0) { boosts = 10; tapsLeft = 100; tg.showAlert("⛽ Tank Refilled!"); }
+                updateUI(); tg.HapticFeedback.impactOccurred('light');
+            } else { tg.showAlert("Fuel tank is already full!"); }
         }
 
         async function showAd() {
@@ -142,7 +138,7 @@
                 boosts = 10; points += 500; updateUI();
                 tg.showAlert("✅ Success! Tank refilled + 500 $FUEL!");
             }).catch(() => {
-                tg.showAlert("No ads available. Wait for moderation!");
+                tg.showAlert("Ad not available yet. Waiting for moderation.");
             }).finally(() => {
                 btn.disabled = false; btn.innerText = "📺 WATCH AD (FULL REFILL)";
             });
@@ -154,14 +150,22 @@
                 tg.showAlert("Invite bonus already claimed today!");
                 return;
             }
-            const botUrl = "https://t.me/YOUR_BOT_NAME?start=" + (tg.initDataUnsafe?.user?.id || "ref");
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=Join me!`);
+            const botUrl = "https://t.me/SquadFuelBot?start=" + (tg.initDataUnsafe?.user?.id || "ref");
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=Join me to mine $FUEL!`);
             lastInviteClaim = now;
             localStorage.setItem('lastInviteClaim', now);
             points += 5000; updateUI();
         }
 
-        function connectWallet() { tg.showAlert("Wallet integration coming soon!"); }
+        async function connectWallet() {
+            try {
+                const connectedWallet = await tonConnectUI.connectWallet();
+                tg.showAlert("Wallet Connected!");
+            } catch (error) {
+                tg.showAlert("Connection failed or cancelled.");
+            }
+        }
+
         updateUI();
     </script>
 </body>
