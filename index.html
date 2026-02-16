@@ -3,41 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SquadFuel Game</title>
+    <title>SquadFuel</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://adsgram.ai/js/adsgram-adbox.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; margin: 0; padding: 20px; overflow: hidden; }
-        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; }
-        h1 { color: #f39c12; margin-bottom: 10px; }
-        #user-name { font-size: 1.2em; margin-bottom: 20px; color: #3498db; }
-        .score { font-size: 2.5em; font-weight: bold; margin: 20px 0; }
-        .fuel-bar { width: 200px; height: 25px; background: #333; border-radius: 15px; border: 2px solid #555; overflow: hidden; }
-        #fuel-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #e74c3c, #f1c40f); transition: width 0.3s; }
-        .button { background: #27ae60; border: none; padding: 15px 30px; color: white; font-size: 1.2em; border-radius: 50px; cursor: pointer; box-shadow: 0 4px #1e8449; margin-top: 20px; }
-        .button:active { box-shadow: none; transform: translateY(4px); }
-        .boost-btn { background: #e67e22; margin-top: 15px; font-size: 1em; box-shadow: 0 4px #d35400; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #000000; color: white; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .game-container { background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%); width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 20px; box-sizing: border-box; }
+        h1 { color: #ffcc00; font-size: 3em; margin: 0; text-shadow: 0 0 15px rgba(255, 204, 0, 0.5); }
+        #user-display { font-size: 1.5em; color: #00ccff; font-weight: bold; }
+        .score-box { font-size: 3.5em; font-weight: 900; margin: 10px 0; color: #ffffff; }
+        .fuel-container { width: 80%; background: #333; height: 30px; border-radius: 20px; border: 2px solid #444; overflow: hidden; position: relative; }
+        #fuel-level { height: 100%; width: 100%; background: linear-gradient(90deg, #ff4d00, #ffcc00); transition: width 0.3s ease; }
+        .main-btn { background: #28a745; border: none; width: 220px; height: 70px; border-radius: 35px; color: white; font-size: 1.6em; font-weight: bold; cursor: pointer; box-shadow: 0 6px #19692c; transition: all 0.1s; }
+        .main-btn:active { box-shadow: 0 2px #19692c; transform: translateY(4px); }
+        .boost-btn { background: #fd7e14; border: none; width: 280px; height: 55px; border-radius: 30px; color: white; font-size: 1.1em; font-weight: bold; cursor: pointer; box-shadow: 0 5px #c8630d; }
+        .boost-btn:active { box-shadow: 0 2px #c8630d; transform: translateY(3px); }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>SquadFuel</h1>
-        <div id="user-name">Szia, Játékos!</div>
-        
-        <div class="fuel-bar"><div id="fuel-fill"></div></div>
-        <div class="score"><span id="points">0</span> $FUEL</div>
+<div class="game-container">
+    <h1>SquadFuel</h1>
+    <div id="user-display">Betöltés...</div>
 
-        <button class="button" onclick="mine()">BÁNYÁSZAT</button>
-        <button class="button boost-btn" onclick="showAd()">BOOST ENERGY (+500 $FUEL)</button>
+    <div class="fuel-container">
+        <div id="fuel-level"></div>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+    <div class="score-box"><span id="points">0</span> $FUEL</div>
 
-        // Felhasználónév kiírása
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-            document.getElementById('user-name').innerText = `Szia
- 
+    <button class="main-btn" onclick="mine()">BÁNYÁSZAT</button>
+    <button class="boost-btn" onclick="showAd()">BOOST ENERGY (+500 $FUEL)</button>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    // Felhasználónév javított megjelenítése
+    const userDisplay = document.getElementById('user-display');
+    const user = tg.initDataUnsafe?.user;
+    if (user) {
+        userDisplay.innerText = `Szia, ${user.first_name}!`;
+    } else {
+        userDisplay.innerText = "Szia, Mecks!"; // Tartalék név
+    }
+
+    let points = parseInt(localStorage.getItem('points')) || 0;
+    let fuel = 100;
+
+    const pointsEl = document.getElementById('points');
+    const fuelEl = document.getElementById('fuel-level');
+    
+    pointsEl.innerText = points;
+
+    // AdsGram inicializálása a te Block ID-ddal
+    const AdController = window.Adsgram.init({ blockId: "23039" });
+
+    function mine() {
+        if (fuel >= 5) {
+            points += 10;
+            fuel -= 5;
+            updateUI();
+        } else {
+            tg.showAlert("Elfogyott az üzemanyag! Használd a BOOST-ot!");
+        }
+    }
+
+    function updateUI() {
+        pointsEl.innerText = points;
+        fuelEl.style.width = fuel + "%";
+        localStorage.setItem('points', points);
+    }
+
+    async function showAd() {
+        try {
+            // Reklám meghívása
+            await AdController.show();
+            
+            // Jutalom, ha végignézte
+            points += 500;
+            fuel = 100;
+            updateUI();
+            tg.showAlert("Sikeres Boost! +500 $FUEL");
+        } catch (err) {
+            // Ha nem jön be reklám vagy bezárja
+            console.log("Ad Error:", err);
+            tg.showAlert("A reklám jelenleg nem érhető el, vagy túl hamar bezártad.");
+        }
+    }
+
+    // Alaphelyzet beállítása
+    updateUI();
+</script>
+
+</body>
+</html>
