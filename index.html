@@ -3,46 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SquadFuel - Final Fix</title>
+    <title>SquadFuel - Official AdsGram Fix</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://adsgram.ai/js/adsgram-adbox.js"></script>
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <style>
         body { font-family: 'Arial', sans-serif; background-color: #001a33; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; user-select: none; }
         .container { width: 90%; max-width: 400px; text-align: center; }
-        .logo-area { font-size: 50px; margin-bottom: 5px; }
-        h1 { font-size: 1.5em; margin: 0 0 10px 0; color: #f1c40f; }
         .score-container { border: 2px solid #f1c40f; border-radius: 20px; padding: 15px; margin-bottom: 15px; background: rgba(241, 196, 15, 0.1); }
-        .score-value { font-size: 3em; font-weight: bold; }
-        .fuel-bar { width: 100%; height: 25px; background: #333; border-radius: 15px; overflow: hidden; margin-bottom: 5px; border: 1px solid #444; }
-        #fuel-fill { height: 100%; background: linear-gradient(90deg, #f1c40f, #f39c12); transition: width 0.3s ease; width: 0%; }
-        .btn { width: 100%; padding: 12px; margin: 4px 0; border: none; border-radius: 25px; font-size: 1em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .mine-btn { background: #27ae60; color: white; box-shadow: 0 4px #1e8449; height: 60px; }
+        .score-value { font-size: 3.5em; font-weight: bold; }
+        .fuel-bar { width: 100%; height: 25px; background: #333; border-radius: 15px; overflow: hidden; border: 1px solid #444; }
+        #fuel-fill { height: 100%; background: linear-gradient(90deg, #f1c40f, #f39c12); transition: width 0.3s; width: 0%; }
+        .btn { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 25px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .mine-btn { background: #27ae60; color: white; box-shadow: 0 4px #1e8449; }
         .ad-btn { background: #f39c12; color: black; }
-        .ad-btn:disabled { opacity: 0.6; filter: grayscale(1); }
+        .ad-btn:disabled { opacity: 0.5; }
         .secondary-btn { background: #2980b9; color: white; }
         .wallet-btn { background: #8e44ad; color: white; }
-        .rocket-section { margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px dashed #f1c40f; }
-        .rocket-btn { font-size: 40px; cursor: pointer; display: inline-block; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo-area">🚀</div>
-        <h1 id="user-name">SquadFuel Hub</h1>
-        <div id="multiplier-tag" style="display:none; color:#2ecc71; font-weight:bold;">⚡ 2X REWARD ACTIVE!</div>
+        <div style="font-size: 50px;">🚀</div>
+        <h2 id="user-name">SquadFuel Hub</h2>
         <div class="score-container">
             <div id="points" class="score-value">0</div>
         </div>
         <div class="fuel-bar"><div id="fuel-fill"></div></div>
-        <div style="font-size: 0.7em; margin-bottom: 10px;">FUEL: <span id="boost-count">10</span>/10</div>
-        
-        <div class="rocket-section">
-            <div class="rocket-btn" onclick="tapRocket()">🚀</div>
-            <div style="font-size: 0.8em; color:#f1c40f;"><span id="tap-counter">100</span> TAPS TO REFILL</div>
-        </div>
+        <div style="font-size: 0.8em; margin: 5px 0 15px 0;">FUEL TANK: <span id="boost-count">10</span>/10</div>
 
         <button class="btn mine-btn" onclick="mine()">⛏ MINE $FUEL</button>
-        <button id="ad-button" class="btn ad-btn" onclick="showAd()">📺 WATCH AD (REFILL + 2X)</button>
+        <button id="ad-button" class="btn ad-btn" onclick="showAd()">📺 WATCH AD (REFILL)</button>
         
         <div style="display: flex; gap: 8px;">
             <button class="btn secondary-btn" style="flex: 1;" onclick="inviteFriends()">👥 INVITE</button>
@@ -56,79 +46,66 @@
 
         let points = parseInt(localStorage.getItem('points')) || 0;
         let boosts = parseInt(localStorage.getItem('boosts')) ?? 10;
-        let tapsLeft = 100;
-        let multiplier = 1;
+        let lastInviteClaim = parseInt(localStorage.getItem('lastInviteClaim')) || 0;
+
+        // Inicializálás a dokumentáció szerint
+        const AdController = window.Adsgram.init({ blockId: "23039" });
 
         function updateUI() {
             document.getElementById('points').innerText = points.toLocaleString();
             document.getElementById('boost-count').innerText = boosts;
             document.getElementById('fuel-fill').style.width = (boosts / 10 * 100) + "%";
-            document.getElementById('tap-counter').innerText = tapsLeft;
             localStorage.setItem('points', points);
             localStorage.setItem('boosts', boosts);
         }
 
         function mine() {
             if (boosts > 0) {
-                points += (10 * multiplier); boosts -= 1;
+                points += 10; boosts -= 1;
                 updateUI(); tg.HapticFeedback.impactOccurred('medium');
             } else { tg.showAlert("Out of Fuel!"); }
         }
 
-        function tapRocket() {
-            if (boosts < 10) {
-                tapsLeft -= 1;
-                if (tapsLeft <= 0) { boosts = 10; tapsLeft = 100; tg.showAlert("🚀 Refilled!"); }
-                updateUI(); tg.HapticFeedback.impactOccurred('light');
-            }
-        }
-
         async function showAd() {
             const btn = document.getElementById('ad-button');
-            btn.disabled = true; btn.innerText = "⌛ CONNECTING...";
+            btn.disabled = true;
+            btn.innerText = "⌛ LOADING AD...";
 
-            // Kényszerített újratöltés
-            const AdBox = window.Adsgram.init({ blockId: "23039" });
-
-            AdBox.show().then(() => {
-                multiplier = 2; boosts = 10;
-                document.getElementById('multiplier-tag').style.display = 'block';
+            // Megjelenítés a dokumentáció szerint
+            AdController.show().then((result) => {
+                // SIKERES MEGTEKINTÉS
+                boosts = 10;
+                points += 500;
                 updateUI();
-                tg.showAlert("✅ 2X Reward active for 60s!");
-                setTimeout(() => {
-                    multiplier = 1; btn.disabled = false;
-                    document.getElementById('multiplier-tag').style.display = 'none';
-                    btn.innerText = "📺 WATCH AD (REFILL + 2X)";
-                }, 60000);
-            }).catch((err) => {
-                tg.showAlert("Ad Error: " + (err.error || "No ads available in your region."));
-                btn.disabled = false; btn.innerText = "📺 WATCH AD (REFILL + 2X)";
+                tg.showAlert("✅ Reward: Tank Refilled + 500 $FUEL!");
+            }).catch((result) => {
+                // HIBA VAGY BEZÁRÁS
+                console.log("Ad result:", result);
+                tg.showAlert("Ad not available or skipped.");
+            }).finally(() => {
+                btn.disabled = false;
+                btn.innerText = "📺 WATCH AD (REFILL)";
             });
         }
 
         function inviteFriends() {
-            const botUsername = "YOUR_BOT_USERNAME"; // CSERÉLD KI!
-            const inviteLink = `https://t.me/${botUsername}?start=${tg.initDataUnsafe?.user?.id || "ref"}`;
-            
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=Join me!`);
+            const now = Date.now();
+            // 24 órás védelem a csalás ellen
+            if (now - lastInviteClaim < 86400000) {
+                tg.showAlert("Invite bonus already claimed today!");
+                return;
+            }
 
-            // Megerősítő ablak, hogy ne adjon pontot csak úgy
-            tg.showPopup({
-                title: 'Claim Bonus',
-                message: 'Did you send the invitation?',
-                buttons: [
-                    {id: 'sent', type: 'default', text: 'Yes, I sent it!'},
-                    {type: 'cancel', text: 'Not yet'}
-                ]
-            }, (buttonId) => {
-                if (buttonId === 'sent') {
-                    points += 5000; updateUI();
-                    tg.showAlert("🎁 5,000 $FUEL added!");
-                }
-            });
+            const botUrl = "https://t.me/YOUR_BOT_NAME?start=" + (tg.initDataUnsafe?.user?.id || "ref");
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=Join SquadFuel!`);
+            
+            lastInviteClaim = now;
+            localStorage.setItem('lastInviteClaim', lastInviteClaim);
+            points += 5000;
+            updateUI();
         }
 
-        function connectWallet() { tg.showAlert("Coming Soon!"); }
+        function connectWallet() { tg.showAlert("Wallet coming soon!"); }
         updateUI();
     </script>
 </body>
