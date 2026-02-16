@@ -1,67 +1,72 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SquadFuel Rocket Edition</title>
+    <title>SquadFuel - Referral Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://adsgram.ai/js/adsgram-adbox.js"></script>
     <style>
         body { font-family: 'Arial', sans-serif; background-color: #001a33; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; user-select: none; }
         .container { width: 90%; max-width: 400px; text-align: center; }
-        h1 { font-size: 2.2em; margin-bottom: 10px; font-weight: 900; }
-        .score-container { border: 2px solid #f1c40f; border-radius: 20px; padding: 15px; margin-bottom: 20px; }
-        .score-value { font-size: 3.5em; font-weight: bold; }
-        
-        /* Rakéta terület */
-        .rocket-section { margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px dashed #f1c40f; }
-        .rocket-btn { font-size: 50px; cursor: pointer; transition: transform 0.1s; display: inline-block; filter: drop-shadow(0 0 10px #f1c40f); }
-        .rocket-btn:active { transform: scale(0.9) translateY(5px); }
-        .tap-needed { color: #f1c40f; font-weight: bold; font-size: 1.1em; margin-top: 5px; }
-
-        .fuel-bar { width: 100%; height: 35px; background: #333; border-radius: 20px; overflow: hidden; margin-bottom: 20px; border: 1px solid #444; }
-        #fuel-fill { height: 100%; background: #f1c40f; transition: width 0.3s ease; width: 0%; }
-        
-        .btn { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; }
-        .mine-btn { background: #27ae60; color: white; box-shadow: 0 4px #1e8449; }
-        .mine-btn:active { box-shadow: 0 0; transform: translateY(4px); }
+        .logo-area { font-size: 55px; margin-bottom: 5px; filter: drop-shadow(0 0 10px #f1c40f); }
+        h1 { font-size: 1.6em; margin: 0 0 15px 0; color: #f1c40f; text-transform: uppercase; letter-spacing: 2px; }
+        .score-container { border: 2px solid #f1c40f; border-radius: 20px; padding: 15px; margin-bottom: 15px; background: rgba(241, 196, 15, 0.05); }
+        .score-value { font-size: 3.2em; font-weight: bold; }
+        .rocket-section { margin: 10px 0; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px dashed #f1c40f; }
+        .rocket-btn { font-size: 45px; cursor: pointer; transition: transform 0.1s; display: inline-block; }
+        .rocket-btn:active { transform: scale(0.8) rotate(-15deg); }
+        .tap-needed { color: #f1c40f; font-weight: bold; font-size: 0.8em; margin-top: 5px; }
+        .fuel-bar { width: 100%; height: 25px; background: #333; border-radius: 15px; overflow: hidden; margin-bottom: 5px; border: 1px solid #444; }
+        #fuel-fill { height: 100%; background: linear-gradient(90deg, #f1c40f, #f39c12); transition: width 0.3s ease; width: 0%; }
+        .btn { width: 100%; padding: 12px; margin: 4px 0; border: none; border-radius: 25px; font-size: 1em; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .mine-btn { background: #27ae60; color: white; box-shadow: 0 4px #1e8449; height: 60px; font-size: 1.2em; }
+        .mine-btn:active { transform: translateY(2px); box-shadow: 0 2px #1e8449; }
+        .secondary-btn { background: #2980b9; color: white; }
+        .wallet-btn { background: #8e44ad; color: white; }
+        .ad-btn { background: #f39c12; color: black; font-size: 0.9em; }
+        #multiplier-tag { color: #2ecc71; font-size: 0.75em; font-weight: bold; display: none; text-transform: uppercase; margin-bottom: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 id="user-name">Welcome!</h1>
-        
+        <div class="logo-area">🚀</div>
+        <h1 id="user-name">SquadFuel</h1>
+        <div id="multiplier-tag">⚡ 2X Bonus Active!</div>
         <div class="score-container">
-            <div style="color:#f1c40f; font-size:0.8em; letter-spacing: 2px;">$FUEL BALANCE</div>
+            <div style="color:#f1c40f; font-size:0.7em; font-weight: bold;">TOTAL $FUEL</div>
             <div id="points" class="score-value">0</div>
         </div>
-
         <div class="fuel-bar"><div id="fuel-fill"></div></div>
-        <div style="font-size: 0.9em; margin-bottom: 10px;">FUEL LEVEL: <span id="boost-count">10</span>/10</div>
-
+        <div style="font-size: 0.7em; margin-bottom: 10px;">FUEL: <span id="boost-count">10</span>/10</div>
         <div class="rocket-section">
             <div class="rocket-btn" onclick="tapRocket()">🚀</div>
-            <div class="tap-needed"><span id="tap-counter">100</span>/100 TAPS FOR +10 FUEL</div>
+            <div class="tap-needed"><span id="tap-counter">100</span> TAPS TO REFILL</div>
         </div>
-
-        <button class="btn mine-btn" onclick="mine()">⛏ BÁNYÁSZAT</button>
+        <button class="btn mine-btn" onclick="mine()">⛏ MINE NOW</button>
+        <button id="ad-button" class="btn ad-btn" onclick="showAd()">📺 WATCH AD (2X REWARD)</button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn secondary-btn" style="flex: 1;" onclick="inviteFriends()">👥 INVITE (+5k)</button>
+            <button class="btn wallet-btn" style="flex: 1;" onclick="connectWallet()">💳 WALLET</button>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        tg.ready(); tg.expand();
 
         let points = parseInt(localStorage.getItem('points')) || 0;
-        let boosts = parseInt(localStorage.getItem('boosts'));
-        if (isNaN(boosts)) boosts = 10;
+        let boosts = parseInt(localStorage.getItem('boosts')) ?? 10;
         let tapsLeft = parseInt(localStorage.getItem('tapsLeft')) || 100;
+        let multiplier = 1;
+
+        const AdController = window.Adsgram ? window.Adsgram.init({ blockId: "23039" }) : null;
 
         function updateUI() {
             document.getElementById('points').innerText = points.toLocaleString();
             document.getElementById('boost-count').innerText = boosts;
             document.getElementById('fuel-fill').style.width = (boosts / 10 * 100) + "%";
             document.getElementById('tap-counter').innerText = tapsLeft;
-            
             localStorage.setItem('points', points);
             localStorage.setItem('boosts', boosts);
             localStorage.setItem('tapsLeft', tapsLeft);
@@ -69,34 +74,58 @@
 
         function mine() {
             if (boosts > 0) {
-                points += 10;
+                points += (10 * multiplier);
                 boosts -= 1;
                 updateUI();
-                // Haptikus visszajelzés, ha támogatja a mobil
                 if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             } else {
-                tg.showAlert("Elfogyott az üzemanyag! Nyomkodd a rakétát a töltéshez!");
+                tg.showAlert("Out of Fuel! Use the Rocket.");
             }
         }
 
         function tapRocket() {
             if (boosts < 10) {
                 tapsLeft -= 1;
-                if (tapsLeft <= 0) {
-                    boosts = 10;
-                    tapsLeft = 100;
-                    tg.showAlert("🚀 TANK FELTÖLTVE!");
-                }
+                if (tapsLeft <= 0) { boosts = 10; tapsLeft = 100; tg.showAlert("🚀 Tank Refilled!"); }
                 updateUI();
                 if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            } else {
-                tg.showScanQrPopup({ text: "A tank már tele van!" }); // Vagy sima alert
-                setTimeout(() => tg.closeScanQrPopup(), 1000);
-            }
+            } else { tg.showAlert("Fuel tank is full!"); }
         }
 
+        async function showAd() {
+            if (!AdController) return;
+            try {
+                await AdController.show();
+                multiplier = 2; boosts = 10;
+                document.getElementById('multiplier-tag').style.display = 'block';
+                document.getElementById('ad-button').disabled = true;
+                updateUI();
+                setTimeout(() => {
+                    multiplier = 1;
+                    document.getElementById('multiplier-tag').style.display = 'none';
+                    document.getElementById('ad-button').disabled = false;
+                }, 60000);
+                tg.showAlert("2X Bonus active for 60s!");
+            } catch (e) { tg.showAlert("Ad unavailable."); }
+        }
+
+        function inviteFriends() {
+            // Referral Reward: +5000 points
+            points += 5000;
+            updateUI();
+            
+            const botUsername = "YOUR_BOT_USERNAME"; // CSERÉLD KI!
+            const inviteLink = `https://t.me/${botUsername}?start=${tg.initDataUnsafe?.user?.id || "ref"}`;
+            const text = encodeURIComponent("Join me and mine $FUEL! 🚀 Get 5000 bonus points now!");
+            
+            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${text}`);
+            tg.showAlert("🎁 +5000 $FUEL Referral Bonus added!");
+        }
+
+        function connectWallet() { tg.showAlert("Wallet connection: Coming Soon!"); }
+
         const user = tg.initDataUnsafe?.user;
-        if (user) document.getElementById('user-name').innerText = "Welcome, " + user.first_name + "!";
+        if (user) document.getElementById('user-name').innerText = user.first_name + "'s Hub";
 
         updateUI();
     </script>
