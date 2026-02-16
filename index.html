@@ -3,41 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SquadFuel v1.1</title>
+    <title>SquadFuel Rocket Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://adsgram.ai/js/adsgram-adbox.js"></script>
     <style>
-        body { font-family: 'Arial', sans-serif; background-color: #001a33; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .container { width: 90%; max-width: 400px; text-align: center; position: relative; }
+        body { font-family: 'Arial', sans-serif; background-color: #001a33; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; user-select: none; }
+        .container { width: 90%; max-width: 400px; text-align: center; }
         h1 { font-size: 2.2em; margin-bottom: 10px; font-weight: 900; }
-        .score-container { border: 2px solid #f1c40f; border-radius: 20px; padding: 15px; margin-bottom: 25px; }
-        .score-label { color: #f1c40f; font-size: 0.8em; letter-spacing: 1px; }
+        .score-container { border: 2px solid #f1c40f; border-radius: 20px; padding: 15px; margin-bottom: 20px; }
         .score-value { font-size: 3.5em; font-weight: bold; }
-        .status-label { color: #f1c40f; font-size: 0.7em; margin-bottom: 5px; text-transform: uppercase; }
-        .fuel-bar { width: 100%; height: 35px; background: #333; border-radius: 20px; overflow: hidden; margin-bottom: 5px; border: 1px solid #444; }
-        #fuel-fill { height: 100%; width: 0%; background: #f1c40f; transition: width 0.3s ease; }
-        .timer-text { font-size: 0.85em; color: #ccc; margin-bottom: 15px; min-height: 1.2em; }
-        .btn { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .mine-btn { background: #27ae60; color: white; }
-        .boost-btn { background: #f1c40f; color: black; }
-        .invite-btn { background: #2c3e50; color: #27ae60; border: 1px solid #27ae60; }
-        .wallet-btn { background: none; color: #666; font-size: 0.8em; margin-top: 25px; text-decoration: underline; border: none; cursor: pointer; }
+        
+        /* Rakéta terület */
+        .rocket-section { margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px dashed #f1c40f; }
+        .rocket-btn { font-size: 50px; cursor: pointer; transition: transform 0.1s; display: inline-block; filter: drop-shadow(0 0 10px #f1c40f); }
+        .rocket-btn:active { transform: scale(0.9) translateY(5px); }
+        .tap-needed { color: #f1c40f; font-weight: bold; font-size: 1.1em; margin-top: 5px; }
+
+        .fuel-bar { width: 100%; height: 35px; background: #333; border-radius: 20px; overflow: hidden; margin-bottom: 20px; border: 1px solid #444; }
+        #fuel-fill { height: 100%; background: #f1c40f; transition: width 0.3s ease; width: 0%; }
+        
+        .btn { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; }
+        .mine-btn { background: #27ae60; color: white; box-shadow: 0 4px #1e8449; }
+        .mine-btn:active { box-shadow: 0 0; transform: translateY(4px); }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 id="welcome-text">Welcome!</h1>
+        <h1 id="user-name">Welcome!</h1>
+        
         <div class="score-container">
-            <div class="score-label">$FUEL BALANCE</div>
+            <div style="color:#f1c40f; font-size:0.8em; letter-spacing: 2px;">$FUEL BALANCE</div>
             <div id="points" class="score-value">0</div>
         </div>
-        <div class="status-label">Tank Status</div>
+
         <div class="fuel-bar"><div id="fuel-fill"></div></div>
-        <div class="timer-text" id="timer-display">Számláló indítása...</div>
+        <div style="font-size: 0.9em; margin-bottom: 10px;">FUEL LEVEL: <span id="boost-count">10</span>/10</div>
+
+        <div class="rocket-section">
+            <div class="rocket-btn" onclick="tapRocket()">🚀</div>
+            <div class="tap-needed"><span id="tap-counter">100</span>/100 TAPS FOR +10 FUEL</div>
+        </div>
+
         <button class="btn mine-btn" onclick="mine()">⛏ BÁNYÁSZAT</button>
-        <button class="btn boost-btn" onclick="showAd()">🚀 BOOST ENERGY (<span id="boost-count">10</span>/10)</button>
-        <button class="btn invite-btn" onclick="inviteFriends()">👥 INVITE FRIENDS</button>
-        <button class="wallet-btn">💳 CONNECT WALLET</button>
     </div>
 
     <script>
@@ -45,88 +51,54 @@
         tg.ready();
         tg.expand();
 
-        // ADATOK KÉNYSZERÍTETT BETÖLTÉSE
         let points = parseInt(localStorage.getItem('points')) || 0;
         let boosts = parseInt(localStorage.getItem('boosts'));
         if (isNaN(boosts)) boosts = 10;
-        let lastUpdate = parseInt(localStorage.getItem('lastUpdate')) || Date.now();
-        
-        const maxBoosts = 10;
-        const cooldown = 30000;
+        let tapsLeft = parseInt(localStorage.getItem('tapsLeft')) || 100;
 
         function updateUI() {
             document.getElementById('points').innerText = points.toLocaleString();
             document.getElementById('boost-count').innerText = boosts;
-            document.getElementById('fuel-fill').style.width = (boosts / maxBoosts * 100) + "%";
+            document.getElementById('fuel-fill').style.width = (boosts / 10 * 100) + "%";
+            document.getElementById('tap-counter').innerText = tapsLeft;
             
             localStorage.setItem('points', points);
             localStorage.setItem('boosts', boosts);
-            localStorage.setItem('lastUpdate', lastUpdate);
+            localStorage.setItem('tapsLeft', tapsLeft);
         }
 
         function mine() {
             if (boosts > 0) {
                 points += 10;
-                if (boosts === maxBoosts) lastUpdate = Date.now();
                 boosts -= 1;
                 updateUI();
+                // Haptikus visszajelzés, ha támogatja a mobil
+                if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             } else {
-                tg.showAlert("Várj az újratöltésre!");
+                tg.showAlert("Elfogyott az üzemanyag! Nyomkodd a rakétát a töltéshez!");
             }
         }
 
-        // A SZÁMLÁLÓ, AMI PONTOSAN AZT TESZI, AMIT KÉRTÉL
-        function startRegeneration() {
-            setInterval(() => {
-                const now = Date.now();
-                if (boosts < maxBoosts) {
-                    const elapsed = now - lastUpdate;
-                    const regened = Math.floor(elapsed / cooldown);
-                    
-                    if (regened > 0) {
-                        boosts = Math.min(maxBoosts, boosts + regened);
-                        lastUpdate = lastUpdate + (regened * cooldown);
-                        updateUI();
-                    }
-
-                    const nextInMs = cooldown - (elapsed % cooldown);
-                    const seconds = Math.ceil(nextInMs / 1000);
-                    
-                    if (boosts < maxBoosts) {
-                        document.getElementById('timer-display').innerText = `Következő ingyen Boost: ${seconds}s`;
-                    } else {
-                        document.getElementById('timer-display').innerText = "TANK FULL (MAX)";
-                    }
-                } else {
-                    document.getElementById('timer-display').innerText = "TANK FULL (MAX)";
-                    lastUpdate = now;
+        function tapRocket() {
+            if (boosts < 10) {
+                tapsLeft -= 1;
+                if (tapsLeft <= 0) {
+                    boosts = 10;
+                    tapsLeft = 100;
+                    tg.showAlert("🚀 TANK FELTÖLTVE!");
                 }
-            }, 1000);
-        }
-
-        // AdBox inicializálása
-        const AdController = window.Adsgram ? window.Adsgram.init({ blockId: "23039" }) : null;
-
-        async function showAd() {
-            if (AdController) {
-                try {
-                    await AdController.show();
-                    boosts = maxBoosts;
-                    updateUI();
-                } catch (e) { tg.showAlert("Reklám nem elérhető."); }
+                updateUI();
+                if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            } else {
+                tg.showScanQrPopup({ text: "A tank már tele van!" }); // Vagy sima alert
+                setTimeout(() => tg.closeScanQrPopup(), 1000);
             }
-        }
-
-        function inviteFriends() {
-            tg.openTelegramLink("https://t.me/share/url?url=https://t.me/SquadFuelBot&text=Bányássz velem!");
         }
 
         const user = tg.initDataUnsafe?.user;
-        if (user) document.getElementById('welcome-text').innerText = `Welcome, ${user.first_name}!`;
+        if (user) document.getElementById('user-name').innerText = "Welcome, " + user.first_name + "!";
 
-        // AZONNALI FUTTATÁS
         updateUI();
-        startRegeneration();
     </script>
 </body>
 </html>
