@@ -14,17 +14,19 @@
         .score-label { color: #f1c40f; font-size: 0.8em; letter-spacing: 1px; }
         .score-value { font-size: 3em; font-weight: bold; }
         .status-label { color: #f1c40f; font-size: 0.7em; margin-bottom: 5px; text-transform: uppercase; }
-        .fuel-bar { width: 100%; height: 30px; background: #333; border-radius: 15px; overflow: hidden; margin-bottom: 5px; }
+        .fuel-bar { width: 100%; height: 30px; background: #333; border-radius: 15px; overflow: hidden; margin-bottom: 5px; border: 1px solid #444; }
         #fuel-fill { height: 100%; width: 100%; background: #f1c40f; transition: width 0.3s; }
-        .btn { width: 100%; padding: 16px; margin: 6px 0; border: none; border-radius: 25px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .timer-text { font-size: 0.85em; color: #ccc; margin-bottom: 15px; }
+        .btn { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .mine-btn { background: #27ae60; color: white; }
-        .boost-btn { background: #f1c40f; color: black; position: relative; }
+        .boost-btn { background: #f1c40f; color: black; }
         .invite-btn { background: #2c3e50; color: #27ae60; border: 1px solid #27ae60; }
-        .timer-text { font-size: 0.8em; color: #aaa; margin-bottom: 10px; }
+        .wallet-btn { background: none; color: #666; font-size: 0.8em; margin-top: 25px; text-decoration: underline; border: none; cursor: pointer; }
         
         /* +1 Animáció */
-        #plus-one { position: absolute; color: #27ae60; font-weight: bold; font-size: 1.5em; opacity: 0; bottom: 120px; left: 50%; transform: translateX(-50%); transition: all 0.5s; pointer-events: none; }
-        .animate-up { opacity: 1 !important; transform: translate(-50%, -40px) !important; }
+        #plus-one { position: absolute; color: #f1c40f; font-weight: bold; font-size: 1.8em; opacity: 0; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; }
+        .animate-up { animation: floatUp 0.8s ease-out forwards; }
+        @keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, 0); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60px); } }
     </style>
 </head>
 <body>
@@ -43,18 +45,17 @@
         <div class="timer-text">Következő ingyen Boost: <span id="timer">30</span>s</div>
 
         <button class="btn mine-btn" onclick="mine()">⛏ BÁNYÁSZAT</button>
-        <button class="btn boost-btn" onclick="showAd()">
-            🚀 BOOST ENERGY (<span id="boost-count">10</span>/10)
-        </button>
+        <button class="btn boost-btn" onclick="showAd()">🚀 BOOST ENERGY (<span id="boost-count">10</span>/10)</button>
         <button class="btn invite-btn" onclick="inviteFriends()">👥 INVITE FRIENDS</button>
+        <button class="wallet-btn">💳 CONNECT WALLET</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // Kezdő adatok betöltése
         let points = parseInt(localStorage.getItem('points')) || 0;
-        let fuel = 100;
         let boosts = 10;
         let maxBoosts = 10;
         let timeLeft = 30;
@@ -63,53 +64,56 @@
 
         function updateUI() {
             document.getElementById('points').innerText = points.toLocaleString();
-            document.getElementById('fuel-fill').style.width = fuel + "%";
+            // A tank szintje a maradék boostoktól függ
+            const fuelPercent = (boosts / maxBoosts) * 100;
+            document.getElementById('fuel-fill').style.width = fuelPercent + "%";
             document.getElementById('boost-count').innerText = boosts;
             localStorage.setItem('points', points);
         }
 
         function mine() {
-            if (fuel >= 10 && boosts > 0) {
+            if (boosts > 0) {
                 points += 10;
-                fuel -= 10;
                 boosts -= 1;
                 updateUI();
-            } else if (boosts <= 0) {
+            } else {
                 tg.showAlert("Elfogyott a Boostod! Várj az időzítőre vagy nézz reklámot!");
             }
         }
 
-        // Időzítő logika
-        setInterval(() => {
-            if (boosts < maxBoosts) {
-                timeLeft--;
-                if (timeLeft <= 0) {
-                    boosts++;
-                    timeLeft = 30;
-                    showPlusOne();
+        // AZ IDŐZÍTŐ LOGIKÁJA - MOST MÁR BIZTOSAN ELINDUL
+        function startTimer() {
+            setInterval(() => {
+                if (boosts < maxBoosts) {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        boosts++;
+                        timeLeft = 30;
+                        showPlusOne();
+                    }
+                    document.getElementById('timer').innerText = timeLeft;
+                    updateUI();
+                } else {
+                    document.getElementById('timer').innerText = "MAX";
+                    timeLeft = 30; // Alaphelyzet, ha lemerülne
                 }
-                document.getElementById('timer').innerText = timeLeft;
-                updateUI();
-            } else {
-                document.getElementById('timer').innerText = "MAX";
-            }
-        }, 1000);
+            }, 1000);
+        }
 
         function showPlusOne() {
             const el = document.getElementById('plus-one');
             el.classList.add('animate-up');
-            setTimeout(() => el.classList.remove('animate-up'), 600);
+            setTimeout(() => el.classList.remove('animate-up'), 800);
         }
 
         async function showAd() {
             try {
                 await AdController.show();
                 boosts = maxBoosts;
-                fuel = 100;
                 updateUI();
                 tg.showAlert("Boost feltöltve!");
             } catch (e) {
-                tg.showAlert("A reklám még nem elérhető. Próbáld újra később!");
+                tg.showAlert("A reklám még nem elérhető (Adsgram jóváhagyás alatt). Próbáld újra később!");
             }
         }
 
@@ -118,7 +122,9 @@
             tg.openTelegramLink(shareUrl);
         }
 
+        // Indítás
         updateUI();
+        startTimer();
     </script>
 </body>
 </html>
