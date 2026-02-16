@@ -7,95 +7,107 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://adsgram.ai/js/adsgram-adbox.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #000000; color: white; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .game-container { background: linear-gradient(180deg, #1a1a1a 0%, #000000 100%); width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 20px; box-sizing: border-box; }
-        h1 { color: #ffcc00; font-size: 3em; margin: 0; text-shadow: 0 0 15px rgba(255, 204, 0, 0.5); }
-        #user-display { font-size: 1.5em; color: #00ccff; font-weight: bold; }
-        .score-box { font-size: 3.5em; font-weight: 900; margin: 10px 0; color: #ffffff; }
-        .fuel-container { width: 80%; background: #333; height: 30px; border-radius: 20px; border: 2px solid #444; overflow: hidden; position: relative; }
-        #fuel-level { height: 100%; width: 100%; background: linear-gradient(90deg, #ff4d00, #ffcc00); transition: width 0.3s ease; }
-        .main-btn { background: #28a745; border: none; width: 220px; height: 70px; border-radius: 35px; color: white; font-size: 1.6em; font-weight: bold; cursor: pointer; box-shadow: 0 6px #19692c; transition: all 0.1s; }
-        .main-btn:active { box-shadow: 0 2px #19692c; transform: translateY(4px); }
-        .boost-btn { background: #fd7e14; border: none; width: 280px; height: 55px; border-radius: 30px; color: white; font-size: 1.1em; font-weight: bold; cursor: pointer; box-shadow: 0 5px #c8630d; }
-        .boost-btn:active { box-shadow: 0 2px #c8630d; transform: translateY(3px); }
+        body { 
+            font-family: 'Arial', sans-serif; 
+            text-align: center; 
+            background-color: #111; 
+            color: white; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+        }
+        .container { width: 90%; max-width: 400px; }
+        h1 { color: #f39c12; font-size: 2.5em; margin-bottom: 5px; }
+        #user-name { color: #3498db; font-size: 1.2em; margin-bottom: 20px; font-weight: bold; }
+        .score { font-size: 3em; font-weight: bold; margin: 20px 0; }
+        .fuel-bar { 
+            width: 100%; height: 20px; background: #333; 
+            border-radius: 10px; overflow: hidden; border: 1px solid #444; 
+        }
+        #fuel-fill { height: 100%; width: 100%; background: #e67e22; transition: width 0.3s; }
+        .btn { 
+            width: 100%; padding: 15px; margin: 10px 0; border: none; 
+            border-radius: 10px; font-size: 1.2em; font-weight: bold; cursor: pointer; 
+        }
+        .mine-btn { background: #27ae60; color: white; box-shadow: 0 4px #1e8449; }
+        .mine-btn:active { transform: translateY(2px); box-shadow: 0 2px #1e8449; }
+        .boost-btn { background: #d35400; color: white; font-size: 1em; }
+        .invite-btn { background: #3498db; color: white; font-size: 1em; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="game-container">
-    <h1>SquadFuel</h1>
-    <div id="user-display">Betöltés...</div>
+    <div class="container">
+        <h1>SquadFuel</h1>
+        <div id="user-name">Szia, Mecks!</div>
+        
+        <div class="fuel-bar"><div id="fuel-fill"></div></div>
+        <div class="score"><span id="points">0</span> $FUEL</div>
 
-    <div class="fuel-container">
-        <div id="fuel-level"></div>
+        <button class="btn mine-btn" onclick="mine()">BÁNYÁSZAT</button>
+        <button class="btn boost-btn" onclick="showAd()">BOOST ENERGY (+500 $FUEL)</button>
+        <button class="btn invite-btn" onclick="inviteFriends()">BARÁTOK MEGHÍVÁSA</button>
     </div>
 
-    <div class="score-box"><span id="points">0</span> $FUEL</div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-    <button class="main-btn" onclick="mine()">BÁNYÁSZAT</button>
-    <button class="boost-btn" onclick="showAd()">BOOST ENERGY (+500 $FUEL)</button>
-</div>
-
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    // Felhasználónév javított megjelenítése
-    const userDisplay = document.getElementById('user-display');
-    const user = tg.initDataUnsafe?.user;
-    if (user) {
-        userDisplay.innerText = `Szia, ${user.first_name}!`;
-    } else {
-        userDisplay.innerText = "Szia, Mecks!"; // Tartalék név
-    }
-
-    let points = parseInt(localStorage.getItem('points')) || 0;
-    let fuel = 100;
-
-    const pointsEl = document.getElementById('points');
-    const fuelEl = document.getElementById('fuel-level');
-    
-    pointsEl.innerText = points;
-
-    // AdsGram inicializálása a te Block ID-ddal
-    const AdController = window.Adsgram.init({ blockId: "23039" });
-
-    function mine() {
-        if (fuel >= 5) {
-            points += 10;
-            fuel -= 5;
-            updateUI();
-        } else {
-            tg.showAlert("Elfogyott az üzemanyag! Használd a BOOST-ot!");
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+            document.getElementById('user-name').innerText = `Szia, ${user.first_name}!`;
         }
-    }
 
-    function updateUI() {
-        pointsEl.innerText = points;
-        fuelEl.style.width = fuel + "%";
-        localStorage.setItem('points', points);
-    }
+        let points = parseInt(localStorage.getItem('points')) || 0;
+        let fuel = 100;
+        
+        // AdsGram inicializálása a te Block ID-ddal
+        const AdController = window.Adsgram.init({ blockId: "23039" });
 
-    async function showAd() {
-        try {
-            // Reklám meghívása
-            await AdController.show();
-            
-            // Jutalom, ha végignézte
-            points += 500;
-            fuel = 100;
-            updateUI();
-            tg.showAlert("Sikeres Boost! +500 $FUEL");
-        } catch (err) {
-            // Ha nem jön be reklám vagy bezárja
-            console.log("Ad Error:", err);
-            tg.showAlert("A reklám jelenleg nem érhető el, vagy túl hamar bezártad.");
+        function updateUI() {
+            document.getElementById('points').innerText = points;
+            document.getElementById('fuel-fill').style.width = fuel + "%";
+            localStorage.setItem('points', points);
         }
-    }
 
-    // Alaphelyzet beállítása
-    updateUI();
-</script>
+        function mine() {
+            if (fuel >= 5) {
+                points += 10;
+                fuel -= 5;
+                updateUI();
+            } else {
+                tg.showAlert("Elfogyott az üzemanyag! Nézz meg egy reklámot!");
+            }
+        }
 
+        async function showAd() {
+            try {
+                // Reklám megnyitása
+                await AdController.show();
+                // Ha végignézte
+                points += 500;
+                fuel = 100;
+                updateUI();
+                tg.showAlert("Boost sikeres! Kaptál 500 $FUEL-t!");
+            } catch (e) {
+                // Ha még nincs reklám (Adsgram jóváhagyásra vár)
+                tg.showAlert("A reklám még nem töltött be. Próbáld újra kicsit később!");
+            }
+        }
+
+        function inviteFriends() {
+            const botUrl = "https://t.me/SquadFuelBot"; // Itt a te botod linkje
+            const text = "Gyere és bányássz velem $FUEL-t a SquadFuel játékban!";
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${encodeURIComponent(text)}`;
+            tg.openTelegramLink(shareUrl);
+        }
+
+        // Alapértelmezett UI frissítés
+        updateUI();
+    </script>
 </body>
 </html>
+ 
