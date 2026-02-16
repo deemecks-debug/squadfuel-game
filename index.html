@@ -33,7 +33,7 @@
         </div>
         <div class="status-label">Tank Status</div>
         <div class="fuel-bar"><div id="fuel-fill"></div></div>
-        <div class="timer-text" id="timer-display">Initialising...</div>
+        <div class="timer-text" id="timer-display">Betöltés...</div>
         <button class="btn mine-btn" onclick="mine()">⛏ BÁNYÁSZAT</button>
         <button class="btn boost-btn" onclick="showAd()">🚀 BOOST ENERGY (<span id="boost-count">10</span>/10)</button>
         <button class="btn invite-btn" onclick="inviteFriends()">👥 INVITE FRIENDS</button>
@@ -42,22 +42,21 @@
 
     <script>
         const tg = window.Telegram.WebApp;
+        tg.ready(); // Fontos: Jelzi a Telegramnak, hogy készen állunk
         tg.expand();
 
         let points = parseInt(localStorage.getItem('points')) || 0;
         let boosts = parseInt(localStorage.getItem('boosts')) || 10;
         let lastUpdate = parseInt(localStorage.getItem('lastUpdate')) || Date.now();
         const maxBoosts = 10;
-        const cooldown = 30000; // 30 másodperc
+        const cooldown = 30000;
 
         const AdController = window.Adsgram.init({ blockId: "23039" });
 
         function updateUI() {
             document.getElementById('points').innerText = points.toLocaleString();
-            const fuelPercent = (boosts / maxBoosts) * 100;
-            document.getElementById('fuel-fill').style.width = fuelPercent + "%";
+            document.getElementById('fuel-fill').style.width = (boosts / maxBoosts * 100) + "%";
             document.getElementById('boost-count').innerText = boosts;
-            
             localStorage.setItem('points', points);
             localStorage.setItem('boosts', boosts);
             localStorage.setItem('lastUpdate', lastUpdate);
@@ -66,15 +65,15 @@
         function mine() {
             if (boosts > 0) {
                 points += 10;
+                if (boosts === maxBoosts) lastUpdate = Date.now();
                 boosts -= 1;
-                if (boosts === maxBoosts - 1) lastUpdate = Date.now();
                 updateUI();
             } else {
-                tg.showAlert("Elfogyott a Boost! Várj vagy nézz reklámot!");
+                tg.showAlert("Várj az üzemanyagra!");
             }
         }
 
-        function checkRegeneration() {
+        function tick() {
             if (boosts < maxBoosts) {
                 const now = Date.now();
                 const elapsed = now - lastUpdate;
@@ -85,9 +84,8 @@
                     lastUpdate = lastUpdate + (regened * cooldown);
                 }
 
-                const nextRegenIn = cooldown - (elapsed % cooldown);
-                const secondsLeft = Math.ceil(nextRegenIn / 1000);
-                document.getElementById('timer-display').innerText = `Next Boost in: ${secondsLeft}s`;
+                const nextIn = Math.ceil((cooldown - (elapsed % cooldown)) / 1000);
+                document.getElementById('timer-display').innerText = "Next Boost in: " + nextIn + "s";
             } else {
                 document.getElementById('timer-display').innerText = "TANK FULL (MAX)";
             }
@@ -99,22 +97,18 @@
                 await AdController.show();
                 boosts = maxBoosts;
                 updateUI();
-                tg.showAlert("Boost feltöltve!");
-            } catch (e) {
-                tg.showAlert("Reklám betöltése... próbáld újra pár perc múlva!");
-            }
+            } catch (e) { tg.showAlert("Hiba a reklámmal."); }
         }
 
         function inviteFriends() {
-            tg.openTelegramLink(`https://t.me/share/url?url=https://t.me/SquadFuelBot&text=Bányássz velem!`);
+            tg.openTelegramLink("https://t.me/share/url?url=https://t.me/SquadFuelBot&text=Gyere!");
         }
 
         const user = tg.initDataUnsafe?.user;
-        if (user) document.getElementById('welcome-text').innerText = `Welcome, ${user.first_name}!`;
+        if (user) document.getElementById('welcome-text').innerText = "Welcome, " + user.first_name + "!";
 
-        // Ez futtatja az időzítőt folyamatosan
-        setInterval(checkRegeneration, 1000);
-        checkRegeneration();
+        setInterval(tick, 1000);
+        tick();
     </script>
 </body>
 </html>
