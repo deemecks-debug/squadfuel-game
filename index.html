@@ -29,13 +29,13 @@
         <h1 id="welcome-text">Welcome, Mecks!</h1>
         <div class="score-container">
             <div class="score-label">$FUEL BALANCE</div>
-            <div class="score-value" id="points">0</div>
+            <div id="points" class="score-value">Loading...</div>
         </div>
         <div class="status-label">Tank Status</div>
         <div class="fuel-bar"><div id="fuel-fill"></div></div>
         <div class="timer-text" id="timer-display">Számláló indítása...</div>
         <button class="btn mine-btn" onclick="mine()">⛏ BÁNYÁSZAT</button>
-        <button class="btn boost-btn" onclick="showAd()">🚀 BOOST ENERGY (<span id="boost-count">10</span>/10)</button>
+        <button class="btn boost-btn" onclick="showAd()">🚀 BOOST ENERGY (<span id="boost-count">0</span>/10)</button>
         <button class="btn invite-btn" onclick="inviteFriends()">👥 INVITE FRIENDS</button>
         <button class="wallet-btn">💳 CONNECT WALLET</button>
     </div>
@@ -45,23 +45,24 @@
         tg.ready();
         tg.expand();
 
-        // ADATOK BETÖLTÉSE
+        // 1. ADATOK BETÖLTÉSE AZONNAL A LOCALSTORAGE-BÓL
         let points = parseInt(localStorage.getItem('points')) || 0;
         let boosts = parseInt(localStorage.getItem('boosts'));
         if (isNaN(boosts)) boosts = 10;
-        
-        // Ez a kulcs az időzítőhöz: mikor történt az utolsó változás
         let lastUpdate = parseInt(localStorage.getItem('lastUpdate')) || Date.now();
+        
         const maxBoosts = 10;
         const cooldown = 30000; // 30 másodperc
 
         const AdController = window.Adsgram.init({ blockId: "23039" });
 
         function updateUI() {
+            // Megjelenítjük a mentett pontokat
             document.getElementById('points').innerText = points.toLocaleString();
             document.getElementById('boost-count').innerText = boosts;
             document.getElementById('fuel-fill').style.width = (boosts / maxBoosts * 100) + "%";
             
+            // Mentés
             localStorage.setItem('points', points);
             localStorage.setItem('boosts', boosts);
             localStorage.setItem('lastUpdate', lastUpdate);
@@ -70,49 +71,45 @@
         function mine() {
             if (boosts > 0) {
                 points += 10;
-                // Csak akkor indítjuk az időzítőt, ha eddig tele volt
+                // Csak az első csökkenésnél rögzítjük az időt a regeneráláshoz
                 if (boosts === maxBoosts) {
                     lastUpdate = Date.now();
                 }
                 boosts -= 1;
                 updateUI();
             } else {
-                tg.showAlert("Elfogyott az üzemanyag! Várj a töltésre!");
+                tg.showAlert("Várj, amíg újratölt a tank!");
             }
         }
 
-        // AZ IDŐZÍTŐ LOGIKA FIXÁLÁSA
-        function startTimer() {
+        // 2. A SZÁMLÁLÓ LOGIKA: MINDIG FUT
+        function startRegeneration() {
             setInterval(() => {
                 const now = Date.now();
                 
                 if (boosts < maxBoosts) {
                     const elapsed = now - lastUpdate;
-                    
-                    // Kiszámoljuk, hány darab 30 mp telt el
                     const regened = Math.floor(elapsed / cooldown);
                     
                     if (regened > 0) {
                         boosts = Math.min(maxBoosts, boosts + regened);
-                        // Csúsztatjuk az utolsó frissítés idejét a maradékkal
+                        // Csak a maradék időt hagyjuk meg a következő +1-hez
                         lastUpdate = lastUpdate + (regened * cooldown);
                         updateUI();
                     }
 
-                    // Kiszámoljuk a hátralévő másodperceket a következőhöz
+                    // Kiszámoljuk a kijelzőhöz a hátralévő másodperceket (30-tól lefelé)
                     const nextInMs = cooldown - (elapsed % cooldown);
                     const seconds = Math.ceil(nextInMs / 1000);
                     
-                    // Ha közben betelt, ne írjuk ki a számot
-                    if (boosts >= maxBoosts) {
-                        document.getElementById('timer-display').innerText = "TANK FULL (MAX)";
-                    } else {
+                    if (boosts < maxBoosts) {
                         document.getElementById('timer-display').innerText = `Következő ingyen Boost: ${seconds}s`;
+                    } else {
+                        document.getElementById('timer-display').innerText = "TANK FULL (MAX)";
                     }
                 } else {
                     document.getElementById('timer-display').innerText = "TANK FULL (MAX)";
-                    // Folyamatosan szinkronban tartjuk az időt, ha tele van
-                    lastUpdate = now;
+                    lastUpdate = now; // Folyamatosan frissítjük, amíg tele van
                 }
             }, 1000);
         }
@@ -123,22 +120,23 @@
                 boosts = maxBoosts;
                 lastUpdate = Date.now();
                 updateUI();
-                tg.showAlert("Boost feltöltve!");
+                tg.showAlert("Boost sikeresen újratöltve!");
             } catch (e) {
-                tg.showAlert("A reklám még nem érhető el.");
+                tg.showAlert("A reklám jelenleg nem érhető el.");
             }
         }
 
         function inviteFriends() {
-            tg.openTelegramLink("https://t.me/share/url?url=https://t.me/SquadFuelBot&text=Bányássz velem!");
+            tg.openTelegramLink("https://t.me/share/url?url=https://t.me/SquadFuelBot&text=Bányássz velem $FUEL-t!");
         }
 
+        // Felhasználónév beállítása
         const user = tg.initDataUnsafe?.user;
         if (user) document.getElementById('welcome-text').innerText = `Welcome, ${user.first_name}!`;
 
-        // AZONNALI INDÍTÁS
+        // INDÍTÁS
         updateUI();
-        startTimer();
+        startRegeneration();
     </script>
 </body>
 </html>
