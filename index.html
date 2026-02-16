@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SquadFuel Hub</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #001a33; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; user-select: none; }
+        .container { width: 92%; max-width: 420px; text-align: center; }
+        .rocket { font-size: 50px; margin-bottom: 10px; }
+        .score-container { border: 2px solid #f1c40f; border-radius: 20px; padding: 20px; margin-bottom: 20px; background: rgba(241, 196, 15, 0.1); }
+        .score-value { font-size: 3.5em; font-weight: bold; color: #fff; }
+        .boost-section { background: rgba(255, 255, 255, 0.05); border: 2px solid #f1c40f; border-radius: 25px; padding: 20px; margin-bottom: 20px; }
+        .gas-can-circle { width: 80px; height: 80px; background: #c0392b; border: 4px solid #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; cursor: pointer; margin: 0 auto 15px; transition: transform 0.1s; }
+        .gas-can-circle:active { transform: scale(0.9); }
+        .fuel-bar-bg { width: 100%; height: 25px; background: #333; border-radius: 15px; overflow: hidden; border: 2px solid #444; }
+        #fuel-fill { height: 100%; background: linear-gradient(90deg, #f1c40f, #e67e22); width: 100%; transition: width 0.3s; }
+        .btn { width: 100%; padding: 15px; margin: 5px 0; border: none; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .mine-btn { background: #27ae60; color: white; }
+        .ad-btn { background: #f39c12; color: black; }
+        .sec-btn { background: #2980b9; color: white; flex: 1; }
+        .wallet-btn { background: #8e44ad; color: white; flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="rocket">🚀</div>
+        <h2 id="user-greeting">HELLO!</h2>
+        <div class="score-container">
+            <div style="font-size: 0.8em; color: #f1c40f;">TOTAL $FUEL</div>
+            <div id="points" class="score-value">0</div>
+        </div>
+        <div class="boost-section">
+            <div class="gas-can-circle" onclick="tapCan()">⛽</div>
+            <div class="fuel-bar-bg"><div id="fuel-fill"></div></div>
+            <p style="margin: 10px 0 0; font-weight: bold; color: #f1c40f;">
+                FUEL: <span id="boost-count">10</span>/10 | REFILL: <span id="tap-counter">100</span>
+            </p>
+        </div>
+        <button class="btn mine-btn" onclick="mine()">⛏ MINE $FUEL</button>
+        <button id="ad-btn" class="btn ad-btn" onclick="showAd()">📺 WATCH AD (FULL REFILL)</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn sec-btn" onclick="invite()">👥 INVITE</button>
+            <button class="btn wallet-btn" onclick="openWallet()">💳 WALLET</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        // Felhasználó üdvözlése
+        const user = tg.initDataUnsafe?.user?.first_name || "USER";
+        document.getElementById('user-greeting').innerText = `HELLO, ${user.toUpperCase()}!`;
+
+        // Adatok betöltése
+        let points = parseInt(localStorage.getItem('sf_points')) || 0;
+        let boosts = (localStorage.getItem('sf_boosts') === null) ? 10 : parseInt(localStorage.getItem('sf_boosts'));
+        let taps = 100;
+
+        function update() {
+            document.getElementById('points').innerText = points.toLocaleString();
+            document.getElementById('boost-count').innerText = boosts;
+            document.getElementById('tap-counter').innerText = taps;
+            document.getElementById('fuel-fill').style.width = (boosts * 10) + "%";
+            localStorage.setItem('sf_points', points);
+            localStorage.setItem('sf_boosts', boosts);
+        }
+        update();
+
+        // RENDSZEREK INICIALIZÁLÁSA
+        const AdController = window.Adsgram.init({ blockId: "23102" });
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://deemecks-debug.github.io/squadfuel-game/tonconnect-manifest.json'
+        });
+
+        function mine() {
+            if (boosts > 0) {
+                points += 10; boosts--; update();
+                tg.HapticFeedback.impactOccurred('medium');
+            } else { tg.showAlert("Out of Fuel! Tap the gas can!"); }
+        }
+
+        function tapCan() {
+            if (boosts < 10) {
+                taps--;
+                if (taps <= 0) { boosts = 10; taps = 100; tg.showAlert("Refilled!"); }
+                update(); tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+
+        async function showAd() {
+            const b = document.getElementById('ad-btn');
+            b.disabled = true; b.innerText = "LOADING...";
+            AdController.show().then(() => {
+                boosts = 10; points += 500; update();
+                tg.showAlert("Reward: 500 $FUEL + Full Tank!");
+            }).catch(() => {
+                tg.showAlert("Ad still in moderation. Try later!");
+            }).finally(() => {
+                b.disabled = false; b.innerText = "📺 WATCH AD (FULL REFILL)";
+            });
+        }
+
+        function invite() {
+            const url = `https://t.me/share/url?url=https://t.me/SquadFuelBot&text=Join my fuel crew!`;
+            tg.openTelegramLink(url);
+        }
+
+        function openWallet() {
+            tonConnectUI.openModal().catch(() => tg.showAlert("Wallet connection error. Check manifest!"));
+        }
+    </script>
+</body>
+</html>
